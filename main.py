@@ -17,8 +17,8 @@ class Action(object):
     class MOVE(object): pass
     class TAKE(object): pass
     class KING(object): pass #TODO: indicates take, but of the oppo's king
-    class CHECK(object): pass #TODO: indicated move, but also places oppo in check
-    class CHECKMATE(object): pass
+    class CHECK(object): pass #TODO: indicates move, but also places oppo in check
+    class CHECKMATE(object): pass #TODO: indicates move, but also checkmate
 
 class Piece(object):
     def __init__(self, board, position, color, directions=Direction.ALL, distance=None):
