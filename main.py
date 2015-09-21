@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 import operator
 
 class Direction(object):
