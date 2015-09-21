@@ -16,7 +16,6 @@ class Action(object):
     class NONE(object): pass
     class MOVE(object): pass
     class TAKE(object): pass
-    class KING(object): pass #TODO: indicates take, but of the oppo's king
     class CHECK(object): pass #TODO: indicates move, but also places oppo in check
     class CHECKMATE(object): pass #TODO: indicates move, but also checkmate
 
@@ -217,8 +216,10 @@ class Board(object):
         if other_piece != None:
             if other_piece.color == piece.color:
                 return Action.NONE
+            elif type(other_piece) == King
+                return Action.CHECK
             else:
-                return Action.TAKE
+                return Action.MOVE
 
         return Action.MOVE
         
