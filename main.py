@@ -46,6 +46,10 @@ class Piece(object):
                     break
         return moves
 
+    @property
+    def value(self):
+        return 3
+
 class Pawn(Piece):
     def __init__(self, board, position, color):
         super(Pawn, self).__init__(board, position, color,
@@ -61,13 +65,21 @@ class Pawn(Piece):
     def __str__(self):
         return 'p'
 
+    @property
+    def value(self):
+        return 1
+
 class Rook(Piece):
     def __init__(self, board, position, color):
         super(Rook, self).__init__(board, position, color,
                                    Direction.STRAIGHT, None)
 
     def __str__(self):
-        return 'R'            
+        return 'R' 
+
+    @property
+    def value(self):
+        return 5           
 
 class Knight(Piece):
     def __init__(self,board,  position, color):
@@ -119,6 +131,10 @@ class Queen(Piece):
 
     def __str__(self):
         return 'Q'
+
+    @property
+    def value(self):
+        return 9
 
 class Board(object):
     def __init__(self):
