@@ -114,7 +114,7 @@ class Bishop(Piece):
 
 class King(Piece):
     def __init__(self, board, position, color):
-        super(King, self).__init__(board, position, color
+        super(King, self).__init__(board, position, color,
                                    Direction.ALL, 1)
 
     def __str__(self):
