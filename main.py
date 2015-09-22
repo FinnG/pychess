@@ -41,12 +41,14 @@ class Piece(object):
                     moves.append({'old_position': self.position,
                                   'new_position': new_position,
                                   'action': action,
-                                  'captured': None})
+                                  'captured': None,
+                                  'piece': self})
                 elif action == Action.TAKE:
                     moves.append({'old_position': self.position,
                                   'new_position': new_position,
                                   'action': action,
-                                  'captured': None})
+                                  'captured': None,
+                                  'piece': self})
                     break
                 elif action == Action.NONE:
                     break
@@ -58,15 +60,6 @@ class Piece(object):
     @property
     def value(self):
         return 3
-
-    def move_str(self, move):
-        piece = str(self)
-        old_list = move['old_position']
-        old_letters = string.letters[old_list[0]] + str(old_list[1] + 1)
-        new_list = move['new_position']
-        new_letters = string.letters[new_list[0]] + str(new_list[1] + 1)
-        captured = 'x' if move['captured'] else '-'
-        return piece + old_letters + captured + new_letters
 
 class Pawn(Piece):
     def __init__(self, board, position, color):
@@ -114,12 +107,14 @@ class Knight(Piece):
                 moves.append({'old_position': self.position,
                               'new_position': new_position,
                               'action': action,
-                              'captured': None})
+                              'captured': None,
+                              'piece': self})
             elif action == Action.TAKE:
                 moves.append({'old_position': self.position,
                               'new_position': new_position,
                               'action': action,
-                              'captured': None})
+                              'captured': None,
+                              'piece': self})
                 break
             elif action == Action.NONE:
                 break
@@ -186,11 +181,12 @@ class Board(object):
             return Color.BLACK
         return Color.WHITE
     
-    def execute_move(self, piece, move):
+    def execute_move(self, move):
         #TODO: check this is a legal move
+        piece = move['piece']
         color = piece.color
         other_color = self.get_next_move_color()
-        assert self.move_color == color
+        assert self.move_color == color, "got: %r expected: %r" % (color, self.move_color)
 
         old_pos = move['old_position']
         assert piece.position == old_pos
@@ -286,10 +282,10 @@ class Board(object):
 
     def check_position(self, piece, position):
         x, y = position
-        if x < 0 or x >= self.size:
+        if x < 0 or x >= self.size():
             return Action.NONE
         
-        if y < 0 or y >= self.size:
+        if y < 0 or y >= self.size():
             return Action.NONE
 
         other_piece = self.squares[x][y]
@@ -385,6 +381,15 @@ class Board(object):
             #TODO: king needs a different piece square value for endgame
         }
 
+        pieces = self.get_pieces(color)
+        score = 0
+        for piece in pieces:
+            piece_type = type(piece)
+            pos = piece.position
+            score += piece_values[piece_type] + piece_square_values[piece_type][pos[0]][pos[1]]
+        return score
+
+    def get_pieces(self, color):
         pieces = []
         for y in range(7, -1, -1):
             for x in range(8):
@@ -394,28 +399,57 @@ class Board(object):
 
                 if piece.color == color:
                     pieces.append(piece)
+        return pieces
 
-        score = 0
+    def get_legal_moves(self):
+        color = self.move_color
+        pieces = self.get_pieces(color)
+
+        moves = []
         for piece in pieces:
-            piece_type = type(piece)
-            pos = piece.position
-            score += piece_values[piece_type] + piece_square_values[piece_type][pos[0]][pos[1]]
-        return score
+            moves += piece.get_moves()
+
+        return moves
+
+    def get_best_moves(self):
+        moves = self.get_legal_moves()
         
+        scores = []
+        for move in moves:
+            self.execute_move(move)
+            scores.append(self.evaluate(Color.WHITE))
+            self.unexecute_move()
+            
+        best_moves = []
+        best_score = 0
+        for i in range(len(scores)):
+            if scores[i] > best_score:
+                best_moves = [moves[i]]
+                best_score = scores[i]
+            elif scores[i] == best_score:
+                best_moves.append(moves[i])
+
+        return best_moves
+    
 def main():
     b = Board()
     print b
 
-    p = b.squares[1][0]
-    moves = p.get_moves()
-    print map(p.move_str, p.get_moves())
-    print b.evaluate(Color.WHITE)
-    b.execute_move(p, moves[0])
-    print b
-    print b.evaluate(Color.WHITE)
-    b.unexecute_move()
-    print b
-    print b.evaluate(Color.WHITE)
+    moves = b.get_legal_moves()
+    print len(moves)
+
+    print b.get_best_moves()
+    
+    # p = b.squares[1][0]
+    # moves = p.get_moves()
+    # print map(p.move_str, p.get_moves())
+    # print b.evaluate(Color.WHITE)
+    # b.execute_move(p, moves[0])
+    # print b
+    # print b.evaluate(Color.WHITE)
+    # b.unexecute_move()
+    # print b
+    # print b.evaluate(Color.WHITE)
 
 if __name__ == '__main__':
     main()
