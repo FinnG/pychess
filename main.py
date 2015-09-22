@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import operator
+import string
 
 class Direction(object):
     STRAIGHT = [[1, 0], [0, 1], [-1, 0], [0, -1]]
@@ -28,7 +29,7 @@ class Piece(object):
         self.distance = distance
         self.history = []
 
-    def get_moves(self):
+    def get_moves(self):        
         moves = []        
         for direction in self.directions:
             size = self.board.size() if not self.distance else self.distance + 1
@@ -37,17 +38,35 @@ class Piece(object):
                 new_position = map(operator.add, vector, self.position)
                 action = self.board.check_position(self, new_position)
                 if action == Action.MOVE:
-                    moves.append(new_position)
+                    moves.append({'old_position': self.position,
+                                  'new_position': new_position,
+                                  'action': action,
+                                  'captured': None})
                 elif action == Action.TAKE:
-                    moves.append(new_position)
+                    moves.append({'old_position': self.position,
+                                  'new_position': new_position,
+                                  'action': action,
+                                  'captured': None})
                     break
                 elif action == Action.NONE:
                     break
         return moves
 
+    def __str__(self):
+        return '?'
+    
     @property
     def value(self):
         return 3
+
+    def move_str(self, move):
+        piece = str(self)
+        old_list = move['old_position']
+        old_letters = string.letters[old_list[0]] + str(old_list[1] + 1)
+        new_list = move['new_position']
+        new_letters = string.letters[new_list[0]] + str(new_list[1] + 1)
+        captured = 'x' if move['captured'] else '-'
+        return piece + old_letters + captured + new_letters
 
 class Pawn(Piece):
     def __init__(self, board, position, color):
@@ -92,9 +111,15 @@ class Knight(Piece):
             new_position = map(operator.add, vector, self.position)
             action = self.board.check_position(self, new_position)
             if action == Action.MOVE:
-                moves.append(new_position)
+                moves.append({'old_position': self.position,
+                              'new_position': new_position,
+                              'action': action,
+                              'captured': None})
             elif action == Action.TAKE:
-                moves.append(new_position)
+                moves.append({'old_position': self.position,
+                              'new_position': new_position,
+                              'action': action,
+                              'captured': None})
                 break
             elif action == Action.NONE:
                 break
@@ -147,9 +172,64 @@ class Board(object):
                         [None, None, None, None, None, None, None, None]]
         self.setup_white()
         self.setup_black()
+        self.move_color = Color.WHITE
+        self.history = {Color.WHITE: [],
+                        Color.BLACK: []}
+        self.captured = {Color.WHITE: [],
+                         Color.BLACK: []}
 
     def size(self):
         return 8
+
+    def get_next_move_color(self):
+        if self.move_color == Color.WHITE:
+            return Color.BLACK
+        return Color.WHITE
+    
+    def execute_move(self, piece, move):
+        #TODO: check this is a legal move
+        color = piece.color
+        other_color = self.get_next_move_color()
+        assert self.move_color == color
+
+        old_pos = move['old_position']
+        assert piece.position == old_pos
+        assert self.squares[old_pos[0]][old_pos[1]] == piece
+
+        captured_piece = move['captured']
+        if captured_piece:
+            self.captured[color].append(captured_piece)
+
+        new_pos = move['new_position']
+        self.squares[old_pos[0]][old_pos[1]] = None
+        self.squares[new_pos[0]][new_pos[1]] = piece
+        piece.position = new_pos
+
+        self.move_color = self.get_next_move_color()
+        self.history[color].append(move)
+
+    def unexecute_move(self):
+        #get the last move
+        last_color = self.get_next_move_color()
+        move = self.history[last_color][-1]
+
+        #move the piece back
+        old_pos = move['new_position']
+
+        captured_piece = move['captured']
+        if captured_piece:
+            self.captured[last_color].remove(captured_piece)
+
+        new_pos = move['old_position']
+        piece = self.squares[old_pos[0]][old_pos[1]]
+        self.squares[old_pos[0]][old_pos[1]] = captured_piece
+        self.squares[new_pos[0]][new_pos[1]] = piece
+        piece.position = new_pos
+
+        self.move_color = self.get_next_move_color()
+        self.history[last_color].remove(move)
+
+        
 
     def setup_white(self):
         for x in range(8):
@@ -216,7 +296,7 @@ class Board(object):
         if other_piece != None:
             if other_piece.color == piece.color:
                 return Action.NONE
-            elif type(other_piece) == King
+            elif type(other_piece) == King:
                 return Action.CHECK
             else:
                 return Action.MOVE
@@ -236,13 +316,106 @@ class Board(object):
                 row += ' '
             result += row + "\n"
         return result
-            
+
+    def map(self, fn):
+        for y in range(7, -1, -1):
+            for x in range(8):
+                fn(self.squares[x][y])
+
+
+    def evaluate(self, color):
+        piece_values = {
+            Pawn: 100,
+            Knight: 320,
+            Bishop: 330,
+            Rook: 500,
+            Queen: 900,
+            King: 20000,
+        }
+
+        piece_square_values = {
+            Pawn: [[0,  0,  0,  0,  0,  0,  0,  0],
+                   [5, 10, 10,-20,-20, 10, 10,  5,],
+                   [5, -5,-10,  0,  0,-10, -5,  5,],
+                   [0,  0,  0, 20, 20,  0,  0,  0,],
+                   [5,  5, 10, 25, 25, 10,  5,  5,],
+                   [10, 10, 20, 30, 30, 20, 10, 10,],
+                   [50, 50, 50, 50, 50, 50, 50, 50,],
+                   [0,  0,  0,  0,  0,  0,  0,  0,],],
+            Knight: [[-50,-40,-30,-30,-30,-30,-40,-50,],
+                     [-40,-20,  0,  5,  5,  0,-20,-40,],
+                     [-30,  5, 10, 15, 15, 10,  5,-30,],
+                     [-30,  0, 15, 20, 20, 15,  0,-30,],
+                     [-30,  5, 15, 20, 20, 15,  5,-30,],
+                     [-30,  0, 10, 15, 15, 10,  0,-30,],
+                     [-40,-20,  0,  0,  0,  0,-20,-40,],
+                     [-50,-40,-30,-30,-30,-30,-40,-50,],],
+            Bishop: [[-20,-10,-10,-10,-10,-10,-10,-20,],
+                     [-10,  5,  0,  0,  0,  0,  5,-10,],
+                     [-10, 10, 10, 10, 10, 10, 10,-10,],
+                     [-10,  0, 10, 10, 10, 10,  0,-10,],
+                     [-10,  5,  5, 10, 10,  5,  5,-10,],
+                     [-10,  0,  5, 10, 10,  5,  0,-10,],
+                     [-10,  0,  0,  0,  0,  0,  0,-10,],
+                     [-20,-10,-10,-10,-10,-10,-10,-20,],],
+            Rook: [[0,  0,  0,  5,  5,  0,  0,  0],
+                   [-5,  0,  0,  0,  0,  0,  0, -5,],
+                   [-5,  0,  0,  0,  0,  0,  0, -5,],
+                   [-5,  0,  0,  0,  0,  0,  0, -5,],
+                   [-5,  0,  0,  0,  0,  0,  0, -5,],
+                   [-5,  0,  0,  0,  0,  0,  0, -5,],
+                   [5, 10, 10, 10, 10, 10, 10,  5,],
+                   [0,  0,  0,  0,  0,  0,  0,  0,],],
+            Queen: [[-20,-10,-10, -5, -5,-10,-10,-20],
+                    [-10,  0,  5,  0,  0,  0,  0,-10,],
+                    [-10,  5,  5,  5,  5,  5,  0,-10,],
+                    [0,  0,  5,  5,  5,  5,  0, -5,],
+                    [-5,  0,  5,  5,  5,  5,  0, -5,],
+                    [-10,  0,  5,  5,  5,  5,  0,-10,],
+                    [-10,  0,  0,  0,  0,  0,  0,-10,],
+                    [-20,-10,-10, -5, -5,-10,-10,-20,],],
+            King: [[20, 30, 10,  0,  0, 10, 30, 20],
+                   [20, 20,  0,  0,  0,  0, 20, 20,],
+                   [-10,-20,-20,-20,-20,-20,-20,-10,],
+                   [-20,-30,-30,-40,-40,-30,-30,-20,],
+                   [-30,-40,-40,-50,-50,-40,-40,-30,],
+                   [-30,-40,-40,-50,-50,-40,-40,-30,],
+                   [-30,-40,-40,-50,-50,-40,-40,-30,],
+                   [-30,-40,-40,-50,-50,-40,-40,-30,],],
+            #TODO: king needs a different piece square value for endgame
+        }
+
+        pieces = []
+        for y in range(7, -1, -1):
+            for x in range(8):
+                piece = self.squares[x][y]
+                if not piece:
+                    continue
+
+                if piece.color == color:
+                    pieces.append(piece)
+
+        score = 0
+        for piece in pieces:
+            piece_type = type(piece)
+            pos = piece.position
+            score += piece_values[piece_type] + piece_square_values[piece_type][pos[0]][pos[1]]
+        return score
         
 def main():
     b = Board()
     print b
 
-    print b.squares[1][0].get_moves()
+    p = b.squares[1][0]
+    moves = p.get_moves()
+    print map(p.move_str, p.get_moves())
+    print b.evaluate(Color.WHITE)
+    b.execute_move(p, moves[0])
+    print b
+    print b.evaluate(Color.WHITE)
+    b.unexecute_move()
+    print b
+    print b.evaluate(Color.WHITE)
 
 if __name__ == '__main__':
     main()
