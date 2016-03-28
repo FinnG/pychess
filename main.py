@@ -20,6 +20,21 @@ class Action(object):
     class CHECK(object): pass #TODO: indicates move, but also places oppo in check
     class CHECKMATE(object): pass #TODO: indicates move, but also checkmate
 
+class Move(object):
+    def __init__(self, piece, position, action, captured):
+        self.old_position = piece.position
+        self.new_position = position
+        self.action = action
+        self.captured = captured
+        self.piece = piece
+
+    def __str__(self):
+        return "%s%s%d->%s%d" % (self.piece,
+                                 string.letters[self.old_position[0]],
+                                 self.old_position[1] + 1,
+                                 string.letters[self.new_position[0]],
+                                 self.new_position[1] + 1)
+    
 class Piece(object):
     def __init__(self, board, position, color, directions=Direction.ALL, distance=None):
         '''Initialise a piece.
@@ -53,25 +68,15 @@ class Piece(object):
 
         @returns A list of dictionaries describing the moves that can be made.
         '''
-        moves = []        
+        moves = []
         for direction in self.directions:
             size = self.board.size() if not self.distance else self.distance + 1
             for n in range(1, size):
                 vector = map(lambda x: x*n, direction)
                 new_position = map(operator.add, vector, self.position)
                 action = self.board.check_position(self, new_position)
-                if action == Action.MOVE:
-                    moves.append({'old_position': self.position,
-                                  'new_position': new_position,
-                                  'action': action,
-                                  'captured': None,
-                                  'piece': self})
-                elif action == Action.TAKE:
-                    moves.append({'old_position': self.position,
-                                  'new_position': new_position,
-                                  'action': action,
-                                  'captured': None,
-                                  'piece': self})
+                if action == Action.MOVE or action == Action.TAKE:
+                    moves.append(Move(self, new_position, action, None))
                     break
                 elif action == Action.NONE:
                     break
@@ -126,18 +131,8 @@ class Knight(Piece):
         for vector in self.directions:
             new_position = map(operator.add, vector, self.position)
             action = self.board.check_position(self, new_position)
-            if action == Action.MOVE:
-                moves.append({'old_position': self.position,
-                              'new_position': new_position,
-                              'action': action,
-                              'captured': None,
-                              'piece': self})
-            elif action == Action.TAKE:
-                moves.append({'old_position': self.position,
-                              'new_position': new_position,
-                              'action': action,
-                              'captured': None,
-                              'piece': self})
+            if action == Action.MOVE or action == Action.TAKE:
+                moves.append(Move(self, new_position, action, None))
                 break
             elif action == Action.NONE:
                 break
@@ -206,23 +201,23 @@ class Board(object):
     
     def execute_move(self, move):
         #Check that we're allowed to move this piece
-        piece = move['piece']
+        piece = move.piece
         color = piece.color
         other_color = self.get_next_move_color()
         assert self.move_color == color, "got: %r expected: %r" % (color, self.move_color)
 
         #Check that the piece we're moving is where we expect it to be
-        old_pos = move['old_position']
+        old_pos = move.old_position
         assert piece.position == old_pos
         assert self.squares[old_pos[0]][old_pos[1]] == piece
 
         #If this move is capturing a piece, add it to the captured list
-        captured_piece = move['captured']
+        captured_piece = move.captured #TODO this is always set to None currently!
         if captured_piece:
             self.captured[color].append(captured_piece)
 
         #Actually move the piece
-        new_pos = move['new_position']
+        new_pos = move.new_position
         self.squares[old_pos[0]][old_pos[1]] = None
         self.squares[new_pos[0]][new_pos[1]] = piece
         piece.position = new_pos
@@ -237,13 +232,13 @@ class Board(object):
         move = self.history[last_color][-1]
 
         #move the piece back
-        old_pos = move['new_position']
+        old_pos = move.new_position
 
-        captured_piece = move['captured']
+        captured_piece = move.captured
         if captured_piece:
             self.captured[last_color].remove(captured_piece)
 
-        new_pos = move['old_position']
+        new_pos = move.old_position
         piece = self.squares[old_pos[0]][old_pos[1]]
         self.squares[old_pos[0]][old_pos[1]] = captured_piece
         self.squares[new_pos[0]][new_pos[1]] = piece
@@ -442,7 +437,7 @@ def main():
     moves = b.get_legal_moves()
     print len(moves)
 
-    print b.get_best_moves()
+    for move in b.get_best_moves(): print move
     
     # p = b.squares[1][0]
     # moves = p.get_moves()
