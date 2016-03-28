@@ -22,6 +22,21 @@ class Action(object):
 
 class Piece(object):
     def __init__(self, board, position, color, directions=Direction.ALL, distance=None):
+        '''Initialise a piece.
+
+        It is intended that subclasses of the Piece class will call this method
+        with the appropriate parameters to implement most of the pieces
+        behaviour.
+
+        @param board The board on which to place this piece.
+        @param position A tuple of size two which signifies the position to
+                        place this piece.
+        @param color Signifies the colour of the piece, either `Color.WHITE`
+                     or `Color.BLACK`.
+        @param direction The direction in which this piece can move. Set to all
+                         directions by default.
+        @param distance The distance that this piece is allowed to move.
+        '''
         self.board = board
         self.position = position
         self.color = color
@@ -29,7 +44,15 @@ class Piece(object):
         self.distance = distance
         self.history = []
 
-    def get_moves(self):        
+    def get_moves(self):
+        '''Gets all legal moves that this piece can make.
+        
+        This method looks at the board, the directions and distance that this
+        piece is allowed to move and determines a set of legal moves that this
+        piece can make.
+
+        @returns A list of dictionaries describing the moves that can be made.
+        '''
         moves = []        
         for direction in self.directions:
             size = self.board.size() if not self.distance else self.distance + 1
@@ -182,25 +205,29 @@ class Board(object):
         return Color.WHITE
     
     def execute_move(self, move):
-        #TODO: check this is a legal move
+        #Check that we're allowed to move this piece
         piece = move['piece']
         color = piece.color
         other_color = self.get_next_move_color()
         assert self.move_color == color, "got: %r expected: %r" % (color, self.move_color)
 
+        #Check that the piece we're moving is where we expect it to be
         old_pos = move['old_position']
         assert piece.position == old_pos
         assert self.squares[old_pos[0]][old_pos[1]] == piece
 
+        #If this move is capturing a piece, add it to the captured list
         captured_piece = move['captured']
         if captured_piece:
             self.captured[color].append(captured_piece)
 
+        #Actually move the piece
         new_pos = move['new_position']
         self.squares[old_pos[0]][old_pos[1]] = None
         self.squares[new_pos[0]][new_pos[1]] = piece
         piece.position = new_pos
 
+        #Update the board state, ready for the next move
         self.move_color = self.get_next_move_color()
         self.history[color].append(move)
 
