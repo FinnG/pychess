@@ -252,60 +252,37 @@ class Board(object):
         self.move_color = self.get_next_move_color()
         self.history[last_color].remove(move)
 
-        
+    def setup_pieces(self, piece_row=0, pawn_row=1):
+        for x in range(8):
+            p = Pawn(self, [x, pawn_row], Color.WHITE)
+            self.squares[x][pawn_row] = p
+
+        r = Rook(self, [0, piece_row], Color.WHITE)
+        self.squares[0][piece_row] = r
+        r2 = Rook(self, [7, piece_row], Color.WHITE)
+        self.squares[7][piece_row] = r2
+
+        n = Knight(self, [1, piece_row], Color.WHITE)
+        self.squares[1][piece_row] = n
+        n2 = Knight(self, [6, piece_row], Color.WHITE)
+        self.squares[6][piece_row] = n2
+
+        b = Bishop(self, [2, piece_row], Color.WHITE)
+        self.squares[2][piece_row] = b
+        b2 = Bishop(self, [5, piece_row], Color.WHITE)
+        self.squares[5][piece_row] = b2
+
+        q = Queen(self, [3, piece_row], Color.WHITE)
+        self.squares[3][piece_row] = q
+
+        k = King(self, [4, piece_row], Color.WHITE)
+        self.squares[4][piece_row] = k
 
     def setup_white(self):
-        for x in range(8):
-            p = Pawn(self, [x, 1], Color.WHITE)
-            self.squares[x][1] = p
-
-        r = Rook(self, [0, 0], Color.WHITE)
-        self.squares[0][0] = r
-        r2 = Rook(self, [7, 0], Color.WHITE)
-        self.squares[7][0] = r2
-
-        n = Knight(self, [1, 0], Color.WHITE)
-        self.squares[1][0] = n
-        n2 = Knight(self, [6, 0], Color.WHITE)
-        self.squares[6][0] = n2
-
-        b = Bishop(self, [2, 0], Color.WHITE)
-        self.squares[2][0] = b
-        b2 = Bishop(self, [5, 0], Color.WHITE)
-        self.squares[5][0] = b2
-
-        q = Queen(self, [3, 0], Color.WHITE)
-        self.squares[3][0] = q
-
-        k = King(self, [4, 0], Color.WHITE)
-        self.squares[4][0] = k
+        self.setup_pieces(0, 1)
 
     def setup_black(self):
-        #TODO: remove duplication here
-        for x in range(8):
-            p = Pawn(self, [x, 6], Color.BLACK)
-            self.squares[x][6] = p
-
-        r = Rook(self, [0, 7], Color.BLACK)
-        self.squares[0][7] = r
-        r2 = Rook(self, [7, 7], Color.BLACK)
-        self.squares[7][7] = r2
-
-        n = Knight(self, [1, 7], Color.BLACK)
-        self.squares[1][7] = n
-        n2 = Knight(self, [6, 7], Color.BLACK)
-        self.squares[6][7] = n2
-
-        b = Bishop(self, [2, 7], Color.BLACK)
-        self.squares[2][7] = b
-        b2 = Bishop(self, [5, 7], Color.BLACK)
-        self.squares[5][7] = b2
-
-        q = Queen(self, [3, 7], Color.BLACK)
-        self.squares[3][7] = q
-
-        k = King(self, [4, 7], Color.BLACK)
-        self.squares[4][7] = k
+        self.setup_pieces(7, 6)
 
     def check_position(self, piece, position):
         x, y = position
