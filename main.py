@@ -77,7 +77,6 @@ class Piece(object):
                 action = self.board.check_position(self, new_position)
                 if action == Action.MOVE or action == Action.TAKE:
                     moves.append(Move(self, new_position, action, None))
-                    break
                 elif action == Action.NONE:
                     break
         return moves
@@ -416,8 +415,10 @@ class Board(object):
         scores = []
         for move in moves:
             self.execute_move(move)
+            print move, self.evaluate(Color.WHITE)
             scores.append(self.evaluate(Color.WHITE))
             self.unexecute_move()
+        print '--'
             
         best_moves = []
         best_score = 0
@@ -435,8 +436,10 @@ def main():
     print b
 
     moves = b.get_legal_moves()
-    print len(moves)
 
+    print '--'
+    for move in moves: print move
+    print '--'
     for move in b.get_best_moves(): print move
     
     # p = b.squares[1][0]
